@@ -1,0 +1,21 @@
+[project]
+name = "prompt-hook"
+version = "0.1.2"
+description = "Log AI prompt hook for Cursor beforeSubmitPrompt"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+prompt-hook = "prompt_hook.hook:main"
+prompt-hook-install = "prompt_hook.install:main"
+
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["prompt_hook*"]
+
+[tool.uv]
+package = true
