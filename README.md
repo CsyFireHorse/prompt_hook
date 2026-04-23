@@ -1,6 +1,6 @@
 # prompt-hook
 
-`prompt-hook` is a standalone package for Cursor `beforeSubmitPrompt` logging.
+`prompt-hook` is a standalone package for Cursor hook logging (`beforeSubmitPrompt` and `afterAgentResponse`).
 
 ## Install the package first
 
@@ -27,40 +27,67 @@ uv run --project logInstaller prompt-hook-install --help
 
 ## Then install the hook
 
-After package/tool is available, install Cursor hook:
+After package/tool is available, install Cursor hook.
+Recommended: prefer `uv tool run --from prompt-hook prompt-hook-install ...` so you do not depend on whether the script entrypoint is already on `PATH`.
 
 ### Install to current project
 
 Run in your target project root:
 
 ```bash
-prompt-hook-install --scope project
+uv tool run --from prompt-hook prompt-hook-install --scope project
+```
+
+Default installs only `beforeSubmitPrompt`.
+
+Install both hooks:
+
+```bash
+uv tool run --from prompt-hook prompt-hook-install --scope project --hooks before,after
+```
+
+Install only `afterAgentResponse`:
+
+```bash
+uv tool run --from prompt-hook prompt-hook-install --scope project --hooks after
 ```
 
 This writes:
 
 - `<project>/.cursor/hooks.json`
-- command:
-  - preferred: `uv run --project "<logInstaller_absolute_path>" prompt-hook --log project`
-  - fallback (when installer is executed from uv tool): `uv tool run --from prompt-hook prompt-hook --log user`
+- hook commands include explicit marker:
+  - `beforeSubmitPrompt` -> `... prompt-hook --log project --hook before`
+  - `afterAgentResponse` -> `... prompt-hook --log project --hook after`
 
 ### Install to user scope
 
 ```bash
-prompt-hook-install --scope user
+uv tool run --from prompt-hook prompt-hook-install --scope user
+```
+
+You can also combine with `--hooks before,after` or `--hooks after`.
+
+Recommended user-scope install for both hooks:
+
+```bash
+uv tool run --from prompt-hook prompt-hook-install --scope user --hooks before,after
 ```
 
 This writes:
 
 - `~/.cursor/hooks.json`
-- command: `uv tool run --from prompt-hook prompt-hook --log user`
+- command pattern:
+  - `beforeSubmitPrompt` -> `uv tool run --from prompt-hook prompt-hook --log user --hook before`
+  - `afterAgentResponse` -> `uv tool run --from prompt-hook prompt-hook --log user --hook after`
 
 ### Uninstall
 
 ```bash
-prompt-hook-install --scope project --uninstall
-prompt-hook-install --scope user --uninstall
+uv tool run --from prompt-hook prompt-hook-install --scope project --uninstall
+uv tool run --from prompt-hook prompt-hook-install --scope user --uninstall
 ```
+
+`--uninstall` always removes both `beforeSubmitPrompt` and `afterAgentResponse` if present.
 
 ## Verify
 
@@ -68,6 +95,7 @@ Send a message in Cursor, then check:
 
 - project mode (`--log project`): `<workspace>/logs/cursor_prompts.jsonl`
 - user mode (`--log user`): `~/.prompt-hook/logs/cursor_prompts.jsonl`
+- each JSONL record now includes `"hook": "before"` or `"hook": "after"`
 
 ## Log target parameter
 
@@ -75,4 +103,5 @@ Send a message in Cursor, then check:
 
 - `--log project`: resolve log path from `workspace_roots[0]` and write to workspace `logs/`
 - `--log user`: always write to user path `~/.prompt-hook/logs/`
+- `--hook before|after`: write the triggering hook name into each JSONL record
 

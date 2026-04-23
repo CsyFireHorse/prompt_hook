@@ -8,6 +8,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+HOOK_CHOICES = ("before", "after")
+
 
 def _read_payload() -> dict[str, Any]:
     raw_bytes = sys.stdin.buffer.read()
@@ -57,12 +59,13 @@ def _log_dir(payload: dict[str, Any], log_target: str) -> Path:
     return Path.home() / ".prompt-hook" / "logs"
 
 
-def _append_record(payload: dict[str, Any], log_target: str) -> None:
+def _append_record(payload: dict[str, Any], log_target: str, hook_name: str) -> None:
     log_dir = _log_dir(payload, log_target)
     log_dir.mkdir(parents=True, exist_ok=True)
 
     record = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
+        "hook": hook_name,
         "payload": payload,
     }
     log_path = log_dir / "cursor_prompts.jsonl"
@@ -73,10 +76,11 @@ def _append_record(payload: dict[str, Any], log_target: str) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--log", choices=["project", "user"], default="project")
+    parser.add_argument("--hook", choices=HOOK_CHOICES, default="before")
     args, _unknown = parser.parse_known_args()
     try:
         payload = _read_payload()
-        _append_record(payload, args.log)
+        _append_record(payload, args.log, args.hook)
     except Exception as exc:  # noqa: BLE001
         print(f"prompt-hook failed: {exc}", file=sys.stderr)
     finally:
