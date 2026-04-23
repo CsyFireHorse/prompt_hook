@@ -19,11 +19,11 @@ def _hooks_path(scope: str, cwd: Path) -> Path:
 
 
 def _project_command(project_dir: Path, hook_name: str) -> str:
-    return f'uv run --project "{project_dir}" prompt-hook --log project --hook {hook_name}'
+    return f'uv run --project "{project_dir}" prompt-hook log --log project --hook {hook_name}'
 
 
 def _user_command(hook_name: str) -> str:
-    return f"uv tool run --from prompt-hook prompt-hook --log user --hook {hook_name}"
+    return f"uv tool run --from prompt-hook prompt-hook log --log user --hook {hook_name}"
 
 
 def _has_pyproject(project_dir: Path) -> bool:
@@ -110,10 +110,8 @@ def _uninstall(scope: str, cwd: Path) -> tuple[Path, dict[str, bool]]:
     return hooks_path, removed
 
 
-def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Install or uninstall prompt-hook in Cursor hooks.json")
+def add_install_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--scope", choices=["project", "user"], default="project")
-    parser.add_argument("--uninstall", action="store_true")
     parser.add_argument(
         "--hooks",
         type=_parse_hooks,
@@ -123,24 +121,18 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--project-dir",
         default=None,
-        help="Absolute path to logInstaller project. Defaults to this package root.",
+        help="Absolute path to prompt-hook project. Defaults to this package root.",
     )
-    return parser.parse_args()
 
 
-def main() -> int:
-    args = _parse_args()
+def add_uninstall_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--scope", choices=["project", "user"], default="project")
+
+
+def run_install(args: argparse.Namespace) -> int:
     cwd = Path.cwd()
     default_project_dir = Path(__file__).resolve().parents[1]
     project_dir = Path(args.project_dir).expanduser().resolve() if args.project_dir else default_project_dir
-
-    if args.uninstall:
-        hooks_path, removed = _uninstall(args.scope, cwd)
-        print(f"scope={args.scope}")
-        print(f"hooks_json={hooks_path}")
-        print(f"removed_beforeSubmitPrompt={str(removed['beforeSubmitPrompt']).lower()}")
-        print(f"removed_afterAgentResponse={str(removed['afterAgentResponse']).lower()}")
-        return 0
 
     hooks_path, installed_commands, installed_hook_keys = _install(args.scope, cwd, project_dir, args.hooks)
     print(f"scope={args.scope}")
@@ -150,6 +142,26 @@ def main() -> int:
     for hook_key in installed_hook_keys:
         print(f"command_{hook_key}={installed_commands[hook_key]}")
     return 0
+
+
+def run_uninstall(args: argparse.Namespace) -> int:
+    cwd = Path.cwd()
+    hooks_path, removed = _uninstall(args.scope, cwd)
+    print(f"scope={args.scope}")
+    print(f"hooks_json={hooks_path}")
+    print(f"removed_beforeSubmitPrompt={str(removed['beforeSubmitPrompt']).lower()}")
+    print(f"removed_afterAgentResponse={str(removed['afterAgentResponse']).lower()}")
+    return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Install or uninstall prompt-hook in Cursor hooks.json")
+    parser.add_argument("--uninstall", action="store_true")
+    add_install_arguments(parser)
+    args = parser.parse_args()
+    if args.uninstall:
+        return run_uninstall(args)
+    return run_install(args)
 
 
 if __name__ == "__main__":

@@ -73,11 +73,12 @@ def _append_record(payload: dict[str, Any], log_target: str, hook_name: str) -> 
         fp.write(json.dumps(record, ensure_ascii=False) + "\n")
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(add_help=False)
+def add_log_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--log", choices=["project", "user"], default="project")
     parser.add_argument("--hook", choices=HOOK_CHOICES, default="before")
-    args, _unknown = parser.parse_known_args()
+
+
+def run_log(args: argparse.Namespace) -> int:
     try:
         payload = _read_payload()
         _append_record(payload, args.log, args.hook)
@@ -86,6 +87,13 @@ def main() -> int:
     finally:
         print(json.dumps({"continue": True}))
     return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(add_help=False)
+    add_log_arguments(parser)
+    args, _unknown = parser.parse_known_args()
+    return run_log(args)
 
 
 if __name__ == "__main__":
